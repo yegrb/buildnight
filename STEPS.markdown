@@ -2,6 +2,20 @@ This file contains the steps needed to follow along with our BuildNight demo. Ea
 
     git checkout step_1
 
+Step 2 (step_2)
+----------------
+In this step we'll setup bundler so we're ready to run the app. Bundler is a Ruby gem for managing different versions of gems installed on your system. It helps you make sure that same versions of different gems are always used with your project, even on different machines. The list of gems your application uses is stored in a `Gemfile`. This describes the gems, but normally leaves our the specific version. Bundler looks at your dependencies and figures out the latest version that will satisfy all the dependencies in your Gemfile. It then makes these gems available to your app, and stores the specific versions it installed in another file called Gemfile.lock. You'll want to check both of these files into your version control.
+
+To get Bundler to install all the gems for your new app, enter:
+
+    bundle install
+
+Once your gems are installed our app is ready to run! You can launch your app using the `rails` command-line tool.
+
+    bundle exec rails server
+
+Go to http://localhost:3000 to see what you've created!
+
 
 Step 1 (step_1)
 ----------------
