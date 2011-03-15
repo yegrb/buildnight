@@ -2,6 +2,213 @@ This file contains the steps needed to follow along with our BuildNight demo. Ea
 
     git checkout step_1
 
+Step 4 (step_4)
+---------------
+The controller layer receives HTTP requests from the Rails router and handles the request. The controller can then pass the results of the request to be rendered by the view.
+
+We'll start by creating a ListsController to handle the Create, Retrieve, Update, and Destroy (CRUD) methods for the Lists in our application.
+
+   bundle exec rails generate controller Lists index show new edit
+
+This uses the Rails controller generator to create a new ListsController class, along with the associated view files, tests, and helpers. We'll explore each of these files later.
+
+Before we try out our new controller we also need to update the routing.
+
+Open config/routes.rb and replace all these lines,
+
+    get "lists/index"
+  
+    get "lists/show"
+  
+    get "lists/new"
+  
+    get "lists/edit"
+
+with,
+
+    resources :lists
+
+To see the url's your application will route to your new ListsController try entering:
+
+    bundle exec rake routes
+
+You'll see something like this:
+
+    lists GET    /lists(.:format)          {:action=>"index", :controller=>"lists"}
+          POST   /lists(.:format)          {:action=>"create", :controller=>"lists"}
+ new_list GET    /lists/new(.:format)      {:action=>"new", :controller=>"lists"}
+edit_list GET    /lists/:id/edit(.:format) {:action=>"edit", :controller=>"lists"}
+     list GET    /lists/:id(.:format)      {:action=>"show", :controller=>"lists"}
+          PUT    /lists/:id(.:format)      {:action=>"update", :controller=>"lists"}
+          DELETE /lists/:id(.:format)      {:action=>"destroy", :controller=>"lists"}
+
+Each line starts with the name of the route, then the HTTP method it responds to and an example of the url. Elements in paranthesis are optional, and named params start with a colon. You'll see how to use the parameters later.
+
+Following the path is the name of the controller responsible for this path, and the name of the method on the controller which will be invoked (called the :action).
+
+Let's go to the index in our web browser. Navigate to http://localhost:3000/lists and you should see a blank template. As the page suggests we need to add our HTML to /app/views/lists/index.html.erb. Drop this HTML into the page:
+
+    <h1>Lists</h1>
+    <table>
+      <caption>Lists</caption>
+      <thead>
+        <tr>
+          <th>Title</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% @lists.each do |list| %>
+          <tr>
+            <td><%= list.title %></td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+
+The Ruby litterred throughout iterates over a set of lists and display each in a table row. For this to work we'll also need to load up all the lists in our application and assign them to a instance variable called @lists. We should do this in the ListsController. Open up app/controllers/lists_controller.rb and change the ListsController#index method to:
+
+    def index
+      @lists = List.all
+    end
+
+Before we'll see any Lists we'll also need to add some to our database. You use the db/seed.rb file to load data into your environment. In development it's ok to create sample data this way, though in the production you'll normally only run it once to setup admin accounts or to load constants into your database. Open our db/seeds.rb and add:
+
+    if Rails.env.development?
+      List.create(:title => "Groceries")
+      List.create(:title => "Errands")
+      List.create(:title => "Favourite Albums")
+      List.create(:title => "Winning RubyGems")
+    end
+
+To recreate your database populate it with fresh data run:
+
+    bundle exec rake db:setup
+
+You can do this whenever you want and it's a great way to get a dev box up and running quickly.
+
+Now reload your web browser and you'll see these new lists on the index.
+
+We'll follow this same pattern to update the rest of the methods in the ListsController:
+
+    class ListsController < ApplicationController
+
+      before_filter :load_object, :only => [:show, :edit, :update, :destroy]
+
+      def index
+        @lists = List.all
+      end
+
+      def show
+      end
+
+      def new
+        @list = List.new
+      end
+
+      def create
+        @list = List.new(params[:list])
+        @list.save
+        flash[:notice] = "Created your new list!"
+        redirect_to lists_url
+      end
+
+      def edit
+      end
+
+      def update
+        @list.update_attributes(params[:list])
+        flash[:notice] = "Your list was updated!"
+        redirect_to @list
+      end
+
+      def destroy
+        @list.destroy
+        flash[:notice] = "List removed"
+        redirect_to lists_url
+      end
+
+      private
+
+      def load_object
+        @list = List.find(params[:id])
+      end
+
+    end
+
+There's a lot going on here so let's go through it method by method.
+
+At the top we add a before_filter. Filters are methods which are run before an action is called. In this case before the show, edit, update, and destroy actions were going to call the load_object method. This takes the id parameter from our url and loads up the corresponding List into the @list instance variable. Don't Repeat Yourself, or DRY, is one of the core tenants of Rails development and we try to emulate that in our own code. Filters just make that easier!
+
+Moving on to the ListController#show() method, we don't really have to do anything since the before_filter has already loaded our object. By default this method will try to render our view in app/views/lists/show.html.erb so there's nothing else we need to do in this method. Easy!
+
+ListController#new() does a little more and simply creates a new List before rendering app/views/lists/new.html.erb. Though the new List is empty by default now, it could need to be pre-populated or associated with other objects in the future. This is where we would do that.
+
+Things start to get interesting in ListController#create(). This action is called when you POST the new list form. When executed the contents of params are:
+
+  {
+    :list => { :title => "My new list" }
+  }
+
+The first line creates a new List from the contents of params[:list]. In this case that sets the title of the new list to "My new list". We save the new list and flash a notification message to the user indicating the list was created. To finish we redirect them back to the index where they see their new List along with all the others.
+
+ListsController#edit() works just like ListsController#show(). The @list is loaded by the filter and then app/views/lists/edit.html.erb is rendered automatically.
+
+ListsController#update() is similair to ListsController#create(). The @list is loaded by the filter, and then we call @list.update_attributes() instead of save() to update the title. A notice is flashed, and we redirect the user back to the updated list.
+
+The last action we'll look at is ListsController#destroy(). This takes a @List and removes it from the database and our application. To do so, we just call @list.destroy() and then flash a notice that the list is gone before redirecting the user back to the index.
+
+That covers the ListsController, so what about the HTML in the views?
+
+Here's what we're got in the show view (app/views/lists/show.html.erb)
+
+    <h1><%= @list.title %></h1>
+    <p><b>TODO</b>: Add some items!</p>
+    <%= link_to 'Edit', edit_list_url(@list) %>
+    <%= link_to 'Destroy', list_url(@list), :method => :delete, :confirm => "Are you sure?" %>
+
+The first line displays the title of the list in a `h1`. The second-line is self-evident. The third uses the link_to() method which creates a link labelled edit and pointing to the url returned edit_list_url(@list). The name of this url method comes from the routes in our application. Look at the routes again:
+
+    bundle exec rake routes
+
+Notice the `edit_list` line? Add `_url` to the end of `edit_list` to get either `edit_list_url` which return a url you can use to link together resources in your application. This also works for `lists_url`, `new_list_url`, and `list_url`! If the url has an :id parameter in it, you'll also want to specify the @list you want to generate the url for. This is what we're doing on the third line when we use `edit_list_url(@list)`.
+
+The link_to() destroy on the last line also accepts a method of :delete and a confirmation message to display when clicked. If you look in the routes again you'll see this route linked to the ListsController#destroy() action.
+
+Moving on to `app/views/lists/new.html.erb`, this view display a form for editing a new List.
+
+    <h1>New List</h1>
+
+    <% form_for @list do |f| %>
+      <%= render :partial=>'form', :locals=>{:f=>f} %>
+      <%= f.submit 'Create' %>
+    <% end %>
+
+On line 3, we use the form_for() method which renders an HTML form for the new @list we created in the controller. As @list is a new record, form_for automatically knows the form should submit to the controllers create action.
+
+The lines inside the form_for() are interesting. Rails provides a feature called view partials, which render content from another file. Variables from this view aren't automatically passed through from this file to the partial, so we use the :locals option to pass through the ones we're interested in. In this case, it's a reference to our form.
+
+The partial itself is in `app/views/lists/_form.html.erb`. Notice it's the same as the name that was passed into render() with the :partial option, only with an underscore at the start. The contents of the partial look like this:
+
+    <%= f.label :title %>
+    <%= f.text_field :title %>
+
+This takes the form passed it, and renders a label for the lists title attribute, and then a text field to edit it.
+
+Going back to the new form we finish off with a call to the `f.submit` method. This adds a submit button labelled "Create" to the bottom of the form. We didn't include this in the partial as we'll be re-using the partial again on the edit form where calling it "Create" won't make much sense.
+
+There's no HTML associated with the create action, so we'll move on to the edit form. It's located in `app/views/lists/edit.html.erb` and should contain:
+
+    <h1>Edit List</h1>
+
+    <% form_for @list do |f| %>
+      <%= render :partial=>'form', :locals=>{:f=>f} %>
+      <%= f.submit 'Edit' %>
+    <% end %>
+
+Except for the use of the word "Edit" instead of "Create" this looks a lot like the new form and even uses the same partial. Remember, Don't Repeat Yourself!
+
+The update and destroy actions don't have any associated HTML with them so that's it. We're done the ListsController. Or are we?
+
 Step 3 (step_3)
 ---------------
 The model layer in our application is responsible for capturing our business logic and data. The contents of this layer shouldn't contain HTML, JavaScript or view code which will be implemented seperately in the views and controllers.
