@@ -2,6 +2,85 @@ This file contains the steps needed to follow along with our BuildNight demo. Ea
 
     git checkout step_1
 
+Step 5 (step_5)
+---------------
+You may have tried creating a List with a blank title and noticed that it worked. Saving Lists without a blank title should never be allowed, and Rails provides and easy way to enforce this with ActiveRecord validations.
+
+Open up the List model in app/models/list.rb and add `validates_presence of :title` on line 4:
+
+    class List < ActiveRecord::Base
+      has_many :items
+
+      validates_presence_of :title
+    end
+
+This line now validates that a lists title is not blank when we call List#save() before storing it in the database. If the validation passes, then the list is stored, otherwise List#save() returns false. To find out why the validation failed we inspect List#errors. This is a set of Error objects, but we can see a human-readable array with List#errors.full_messages.
+
+Let's try this out on the rails console console:
+
+    $ bundle exec rails conosle
+    > list = List.new
+      => #<List id: nil, title: nil, created_at: nil, updated_at: nil>
+    > list.save
+      => false
+    > list.errors
+      => #<OrderedHash {:title=>["can't be blank"]}>
+    > list.errors.full_messages
+      => ["Title can't be blank"]
+
+You can also call List#valid? to test if a model validates, without saving it.
+
+    > list.valid?
+      => false
+    > list.title = "A new list"
+      => "A new list"
+    > list.save
+      => true
+
+Now that we've got validation working on the List model, we need to add support for it in the ListsController. Knowing that List#save() will return false if validation fails, we'll test the results of this call and re-display the form along with a notice of any validation errors that may come up.
+
+Change the ListsController#create() method to:
+
+    def create
+      @list = List.new(params[:list])
+      if @list.save
+        flash[:notice] = "Created your new list!"
+        redirect_to lists_url
+      else
+        render :new
+      end
+    end
+
+And the ListsController#update() method to:
+
+    def update
+      if @list.update_attributes(params[:list])
+        flash[:notice] = "Your list was updated!"
+        redirect_to @list
+      else
+        render :edit
+      end
+    end
+
+And then add some code to display the error messages in the list form partial in app/views/lists/_form.html.erb
+
+
+    <% if @list.errors.any? %>
+    <div id="errorExplanation">
+      <h2><%= pluralize(@list.errors.count, "error") %> prohibited this list from being saved:</h2>
+      <ul>
+      <% @list.errors.full_messages.each do |msg| %>
+      <li><%= msg %></li>
+      <% end %>
+      </ul>
+    </div>
+    <% end %>
+
+    <%= f.label :title %>
+    <%= f.text_field :title %>
+
+Jump back to your web browser and give your validations a try!
+
 Step 4 (step_4)
 ---------------
 The controller layer receives HTTP requests from the Rails router and handles the request. The controller can then pass the results of the request to be rendered by the view.
