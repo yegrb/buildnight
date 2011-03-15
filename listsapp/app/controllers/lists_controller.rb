@@ -15,18 +15,24 @@ class ListsController < ApplicationController
 
   def create
     @list = List.new(params[:list])
-    @list.save
-    flash[:notice] = "Created your new list!"
-    redirect_to lists_url
+    if @list.save
+      flash[:notice] = "Created your new list!"
+      redirect_to lists_url
+    else
+      render :new
+    end
   end
 
   def edit
   end
 
   def update
-    @list.update_attributes(params[:list])
-    flash[:notice] = "Your list was updated!"
-    redirect_to @list
+    if @list.update_attributes(params[:list])
+      flash[:notice] = "Your list was updated!"
+      redirect_to @list
+    else
+      render :edit
+    end
   end
 
   def destroy
