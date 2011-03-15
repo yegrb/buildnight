@@ -1,4 +1,21 @@
 <h1><%= @list.title %></h1>
-<p><b>TODO</b>: Add some items!</p>
+<ul>
+  <% @list.items.each do |item| %>
+    <li>
+      <% form_for [@list, item] do |f| %>
+        <%= f.text_field :text %>
+        <%= f.submit "Save" %>
+      <% end %>
+      <%= button_to "Remove", list_item_url(:list_id => @list.to_param, :id => item.to_param), :method => :delete %>
+    </li>
+  <% end %>
+  <li>
+    <% form_for [@list, @new_item] do |f| %>
+      <%= errors_for @new_item %>
+      <%= f.text_field :text, :placeholder => "new item..." %>
+      <%= f.submit "Add" %>
+    <% end %>
+  </li>
+</ul>
 <%= link_to 'Edit', edit_list_url(@list) %>
 <%= link_to 'Destroy', list_url(@list), :method => :delete, :confirm => "Are you sure?" %>

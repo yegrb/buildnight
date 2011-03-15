@@ -7,6 +7,7 @@ class ListsController < ApplicationController
   end
 
   def show
+    @new_item = Item.new(:list => @list)
   end
 
   def new
