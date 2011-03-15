@@ -1,0 +1,16 @@
+<h1>Lists</h1>
+<table>
+  <caption>Lists</caption>
+  <thead>
+    <tr>
+      <th>Title</th>
+    </tr>
+  </thead>
+  <tbody>
+    <% @lists.each do |list| %>
+      <tr>
+        <td><%= link_to list.title, list %></td>
+      </tr>
+    <% end %>
+  </tbody>
+</table>

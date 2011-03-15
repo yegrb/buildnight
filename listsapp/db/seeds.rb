@@ -5,3 +5,9 @@
 #
 #   cities = City.create([{ :name => 'Chicago' }, { :name => 'Copenhagen' }])
 #   Mayor.create(:name => 'Daley', :city => cities.first)
+if Rails.env.development?
+  List.create(:title => "Groceries")
+  List.create(:title => "Errands")
+  List.create(:title => "Favourite Albums")
+  List.create(:title => "Winning RubyGems")
+end

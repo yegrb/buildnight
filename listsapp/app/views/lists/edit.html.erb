@@ -1,0 +1,6 @@
+<h1>Edit List</h1>
+
+<% form_for @list do |f| %>
+  <%= render :partial=>'form', :locals=>{:f=>f} %>
+  <%= f.submit 'Edit' %>
+<% end %>
