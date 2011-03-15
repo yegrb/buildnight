@@ -2,6 +2,214 @@ This file contains the steps needed to follow along with our BuildNight demo. Ea
 
     git checkout step_1
 
+Step 6 (step_6)
+---------------
+Lists aren't much use without some items to go them. We'll start by adding some items to our Lists in db/seeds.rb and then displaying them when we show a list.
+
+First add some items to the seed data in db/seeds.rb:
+
+    if Rails.env.development?
+      groceries = List.create(:title => "Groceries")
+      groceries.items.create(:text => "oranges")
+      groceries.items.create(:text => "apples")
+      groceries.items.create(:text => "crackers")
+      groceries.items.create(:text => "wheatbix")
+
+      errands = List.create(:title => "Errands")
+      errands.items.create(:text => "get groceries")
+      errands.items.create(:text => "pickup parcel")
+      errands.items.create(:text => "wash the car")
+
+      favs = List.create(:title => "Favourite Albums")
+      favs.items.create(:text => "Tron: Legacy")
+      favs.items.create(:text => "Reintegration Time")
+      favs.items.create(:text => "Boxer")
+      favs.items.create(:text => "The King is Dead")
+
+      gems = List.create(:title => "Winning RubyGems")
+      gems.items.create(:text => "rails")
+      gems.items.create(:text => "sinatra")
+      gems.items.create(:text => "rack")
+      gems.items.create(:text => "bundler")
+      gems.items.create(:text => "devise")
+      gems.items.create(:text => "cancan")
+    end
+
+Load this up,
+
+     bundle exec rake db:setup
+
+And now change app/views/lists/show.html.erb to show a lists items:
+
+  <h1><%= @list.title %></h1>
+  <ul>
+    <% @list.items.each do |item| %>
+      <li><%= item.text %></li>
+    <% end %>
+  </ul>
+  <%= link_to 'Edit', edit_list_url(@list) %>
+  <%= link_to 'Destroy', list_url(@list), :method => :delete, :confirm => "Are you sure?" %>
+
+Go back to your browser and now the lists are starting to look a bit better. Unfortunately, they're not much use if we can't edit the items on the list. Let's fix that!
+
+We'll begin by creating a new nested resource for the Items associated with a List. Nested resources are resources (like our Items) which don't really make sense outside the context of another resource (the List). The classic example of a nested resource is blog comments. The comments are often modelled as a nested resource of an article.
+
+To get started we'll add an items resource to our routing. Changing the `resources :lists` line in config/routes.rb to read:
+
+    resources :lists do
+      resources :items, :except => [:index, :show]
+    end
+
+If you display the routes again, you'll notice we've not got new urls to handle the items associated with a list:
+
+    $ bundle exec rake routes
+
+    list_items POST   /lists/:list_id/items(.:format)          {:action=>"create", :controller=>"items"}
+ new_list_item GET    /lists/:list_id/items/new(.:format)      {:action=>"new", :controller=>"items"}
+edit_list_item GET    /lists/:list_id/items/:id/edit(.:format) {:action=>"edit", :controller=>"items"}
+     list_item PUT    /lists/:list_id/items/:id(.:format)      {:action=>"update", :controller=>"items"}
+               DELETE /lists/:list_id/items/:id(.:format)      {:action=>"destroy", :controller=>"items"}
+
+All these new routes expect a ItemsController so let's include that as well.
+
+    $ bundle exec rails generate controller Items
+
+I've left off the actions since none of them will need any views to go with them. All the editing will happen on the List's page.
+
+To that effect, let's add a form to add new items to a list.  Open up app/views/lists/show.html.erb and add this form to the end of the items list:
+    
+    <li>
+      <% form_for [@list, @new_item] do |f| %>
+        <%= f.text_field :text, :placeholder => "new item..." %>
+        <%= f.submit "Add" %>
+      <% end %>
+    </li>
+
+Again we're using the form_for helper, but we for nested resources we must pass it an array of the nested resources instead. We'll also need to create @new_item in our ListsController. Change ListsController#show() to:
+
+    def show
+      @new_item = Item.new(:list => @list)
+    end
+
+You should now see this form when you view a List. If you try to submit you'll get and error indicating that ItemsController#create() is missing. Define that next.
+
+    def create
+      @list = List.find(params[:list_id])
+      @new_item = Item.new(params[:item].merge({ :list => @list }))
+      if @new_item.save
+        flash[:notice] = "New item added"
+        redirect_to @list
+      else
+        render :file => 'lists/show'
+      end
+    end
+
+We'll also add some validation to our Item model:
+
+  class Item < ActiveRecord::Base
+    belongs_to :list
+    validates_presence_of :text
+  end
+
+And display them on our form. Since this is similair to what we did before for the new lists we'll add a helper to re-use the same code. Helpers we want to use across the application belong in app/helpers/application_helpers.rb. Add this:
+
+    module ApplicationHelper
+      def errors_for(subject)
+        render :partial => "shared/errors", :locals => { :subject => subject } 
+      end
+    end
+
+We'll also need to add a new partial in app/views/shared/_errors.html.erb:
+
+    <% if subject.errors.any? %>
+    <div id="errorExplanation">
+      <h2><%= pluralize(subject.errors.count, "error") %> prohibited this <%=subject.class.human_name.downcase %> from being saved:</h2>
+      <ul>
+      <% subject.errors.full_messages.each do |msg| %>
+      <li><%= msg %></li>
+      <% end %>
+      </ul>
+    </div>
+    <% end %>
+
+Now update your lists form (in app/views/lists/_form.html.erb) to use this helper:
+
+    <%= errors_for @list %>
+    <%= f.label :title %>
+    <%= f.text_field :title %>
+
+And add it to your the page showing an individual list (in app/views/lists/show.html.erb) on line 8:
+
+    <h1><%= @list.title %></h1>
+    <ul>
+      <% @list.items.each do |item| %>
+        <li><%= item.text %></li>
+      <% end %>
+      <li>
+        <% form_for [@list, @new_item] do |f| %>
+          <%= errors_for @new_item %>
+          <%= f.text_field :text, :placeholder => "new item..." %>
+          <%= f.submit "Add" %>
+        <% end %>
+      </li>
+    </ul>
+    <%= link_to 'Edit', edit_list_url(@list) %>
+    <%= link_to 'Destroy', list_url(@list), :method => :delete, :confirm => "Are you sure?" %>
+
+We can now create a new item. Let's follow the same pattern and allow you to edit items in the list. To do this we'll just change each list item into it's own form. Change the section in app/views/lists/show.html.erb which displays an item:
+
+    <% @list.items.each do |item| %>
+      <li>
+        <% form_for [@list, item] do |f| %>
+          <%= f.text_field :text %>
+          <%= f.submit "Save" %>
+        <% end %>
+        <%= button_to "Remove", list_item_url(:list_id => @list.to_param, :id => item.to_param), :method => :delete %>
+      </li>
+    <% end %>
+
+To handle this form we need to define ItemsController#update():
+
+    def update
+      @item = Item.find(params[:id])
+      if @item.update_attributes(params[:item])
+        flash[:notice] = "Item updated"
+        redirect_to @list
+      else
+        flash[:error] = @item.errors.full_messages.join('. ')
+        redirect_to @list
+      end
+    end
+
+Since both the create() and update() actions need the @list set, we've also added a new filter to help out with this:
+
+    class ItemsController < ApplicationController
+
+      before_filter :load_list
+
+      ... snip! ...
+
+      private
+
+      def load_list
+        @list = List.find(params[:list_id])
+      end
+    end
+
+Don't forget to remove the line from ItemsController#create() which sets @list.
+
+We also need to add an ItemsController#destroy() method to handle the removing of items.
+
+    def destroy
+      @item = Item.find(params[:id])
+      @item.destroy
+      flash[:notice] = "Removed item"
+      redirect_to @list
+    end
+
+We can now create, edit, and destroy items on a list!
+
+
 Step 5 (step_5)
 ---------------
 You may have tried creating a List with a blank title and noticed that it worked. Saving Lists without a blank title should never be allowed, and Rails provides and easy way to enforce this with ActiveRecord validations.
