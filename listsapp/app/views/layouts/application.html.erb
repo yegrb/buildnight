@@ -1,14 +1,25 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Listsapp</title>
+  <title>Listr</title>
   <%= stylesheet_link_tag :all %>
   <%= javascript_include_tag :defaults %>
   <%= csrf_meta_tag %>
 </head>
 <body>
-
-<%= yield %>
-
+  <div id="container">
+    <header>
+      <hgroup>
+      <h1><%= link_to "Listr", root_url %></h1>
+      <h2>These lists are winning!</h2>
+      </hgroup>
+    </header>
+    <article>
+      <%= yield %>
+    </article>
+    <footer>
+    Built by <a href="http://twitter.com/scottbrooksca">@ScottBrooksCA</a> and <a href="http://twitter.com/MarkBennett">@MarkBennett</a> in front of a live studio audience during Edmonton's first BuildNight. <a href="https://github.com/yegrb/buildnight">Get the source on GitHub</a>.
+    </footer>
+  </div>
 </body>
 </html>

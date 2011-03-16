@@ -1,16 +1,11 @@
-<h1>Lists</h1>
-<table>
-  <caption>Lists</caption>
-  <thead>
-    <tr>
-      <th>Title</th>
-    </tr>
-  </thead>
-  <tbody>
-    <% @lists.each do |list| %>
-      <tr>
-        <td><%= link_to list.title, list %></td>
-      </tr>
-    <% end %>
-  </tbody>
-</table>
+<ul>
+  <% @lists.each do |list| %>
+      <li><%= link_to list.title, list %></li>
+  <% end %>
+</ul>
+<aside class="actions">
+<h2>Actions</h2>
+<ul>
+  <li><%= link_to "New List", new_list_url %></li>
+</ul>
+</aside>
