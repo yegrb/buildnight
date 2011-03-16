@@ -2,6 +2,77 @@ This file contains the steps needed to follow along with our BuildNight demo. Ea
 
     git checkout step_1
 
+Step 7 (step_7)
+---------------
+Now that we've got the basics working, let's add a little polish to our app.
+
+The first thing we're going to do is update the standard layout used by our applicaiton to add a common header and footer with some basic navigation. The default layout used by the application is stored in app/views/layouts/application.html.erb. If you open it up right now, it will look something like this:
+
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>Listsapp</title>
+      <%= stylesheet_link_tag :all %>
+      <%= javascript_include_tag :defaults %>
+      <%= csrf_meta_tag %>
+    </head>
+    <body>
+
+    <%= yield %>
+
+    </body>
+    </html>
+
+The call to yield on line 11 is where the different contents of each page are rendered. Any HTML we add before or after that will appear on every page.
+
+I won't go over all my changes, as we don't have time to cover HTML5 in this talk however we'll use standard HTML5 to add a header and footer. The final markup should now look like this:
+
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>Listr</title>
+      <%= stylesheet_link_tag :all %>
+      <%= javascript_include_tag :defaults %>
+      <%= csrf_meta_tag %>
+    </head>
+    <body>
+      <div id="container">
+        <header>
+          <hgroup>
+          <h1><%= link_to "Listr", root_url %></h1>
+          <h2>These lists are winning!</h2>
+          </hgroup>
+        </header>
+        <article>
+          <%= yield %>
+        </article>
+        <footer>
+        Built by <a href="http://twitter.com/scottbrooksca">@ScottBrooksCA</a> and <a href="http://twitter.com/MarkBennett">@MarkBennett</a> in front of a live studio audience during Edmonton's first BuildNight. <a href="https://github.com/yegrb/buildnight">Get the source on GitHub</a>.
+        </footer>
+      </div>
+    </body>
+    </html>
+
+Tweak the prolog to your own liking! :)
+
+We'll also update the Lists index:
+
+    <ul>
+      <% @lists.each do |list| %>
+          <li><%= link_to list.title, list %></li>
+      <% end %>
+    </ul>
+    <aside class="actions">
+    <h2>Actions</h2>
+    <ul>
+      <li><%= link_to "New List", new_list_url %></li>
+    </ul>
+    </aside>
+
+As well change `root :to` line in config/routes.rb to, `root, :to => "lists#index" and delete public/index.html. No visiting the root of your server will show an index of your Lists.
+
+We've also added some basic cssreset borrowed from html5boilerplate.
+
 Step 6 (step_6)
 ---------------
 Lists aren't much use without some items to go them. We'll start by adding some items to our Lists in db/seeds.rb and then displaying them when we show a list.
